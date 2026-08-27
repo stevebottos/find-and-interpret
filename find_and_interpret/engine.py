@@ -7,6 +7,7 @@ scale internally), reused across questions:
     boxes = engine.seek(n_workers=24)
     relevance = engine.judge(boxes, n_workers=24)
     html = engine.visualize(boxes, relevance)
+    hits = engine.relevant_crops(boxes, relevance)
 
 seek()/judge() each run concurrently over their pages/crops via aiohttp,
 capped at n_workers in-flight requests -- vLLM's own scheduler does the
@@ -16,6 +17,7 @@ actual batching, not this code.
 import asyncio
 import base64
 import io
+import itertools
 
 import aiohttp
 from PIL import Image, ImageDraw
@@ -29,13 +31,23 @@ from find_and_interpret.templates import (
 
 STYLE = """
 body{font-family:system-ui;background:#111;color:#eee;padding:20px}
-img{max-height:400px;border:1px solid #444;margin:4px 0}
+img{border:1px solid #444;margin:4px 0}
 .q{border-top:3px solid #666;padding:20px 0}
-.hit{border-top:1px solid #333;padding:10px 0}
-.crops{display:flex;flex-wrap:wrap;gap:8px}
+.hit{border-top:1px solid #333;padding:10px 0;display:flex;flex-direction:column;align-items:center}
+.page img{max-width:1100px;width:100%;height:auto}
+.crops{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
 .crops div{text-align:center}
 .ok{color:#4c9}.bad{color:#d55}
-pre{background:#1a1a1a;padding:8px;border-radius:4px;white-space:pre-wrap}
+pre{background:#1a1a1a;padding:8px;border-radius:4px;white-space:pre-wrap;text-align:left;max-width:1100px}
+.summary{border-bottom:3px solid #666;padding-bottom:20px;margin-bottom:20px}
+.summary-q{border-top:1px solid #333;padding:10px 0}
+.summary-q h3{margin:0 0 8px}
+.summary-crops{display:flex;flex-direction:column;gap:8px}
+.summary-item{display:flex;flex-direction:row;align-items:flex-start;gap:12px}
+.summary-item img{flex:0 0 auto;max-width:220px;max-height:220px;width:auto;height:auto}
+.summary-item .text{flex:1;min-width:0;text-align:left}
+.summary-item .meta{color:#999;margin-bottom:4px}
+.summary-item pre{max-width:none}
 """
 
 
@@ -49,9 +61,11 @@ def _img_tag(img):
     return f"<img src='data:image/png;base64,{_b64(img)}'>"
 
 
-def _with_box(img, box):
+def _with_boxes(img, boxes):
     img = img.copy()
-    ImageDraw.Draw(img).rectangle(box, outline="red", width=3)
+    draw = ImageDraw.Draw(img)
+    for box in boxes:
+        draw.rectangle(box, outline="#3af", width=3)
     return img
 
 
@@ -60,11 +74,34 @@ def _resize_to_train_scale(img):
     return img.resize(tuple(round(x * scale) for x in img.size), Image.LANCZOS) if scale < 1 else img
 
 
-def write_report(sections, out_path):
-    """Join per-question visualize() sections into one standalone HTML file."""
+def _summary_html(relevant_crops):
+    """One <div class='summary'> block listing every relevant crop found,
+    grouped by question, each with its source page and judge justification."""
+    groups_html = []
+    for question, crops in itertools.groupby(relevant_crops, key=lambda c: c["question"]):
+        crops = list(crops)
+        crops_html = "".join(
+            f"<div class='summary-item'>{_img_tag(c['img'])}"
+            f"<div class='text'><div class='meta'>from {c['page']} &mdash; "
+            f"<span class='{'ok' if c['relevant'] else 'bad'}'>relevant={c['relevant']}</span></div>"
+            f"<pre>{c['raw']}</pre></div></div>"
+            for c in crops
+        )
+        groups_html.append(
+            f"<div class='summary-q'><h3>{question} ({len(crops)} relevant crop{'s' if len(crops) != 1 else ''})</h3>"
+            f"<div class='summary-crops'>{crops_html}</div></div>"
+        )
+    return f"<div class='summary'><h2>Relevant crops ({len(relevant_crops)})</h2>{''.join(groups_html)}</div>"
+
+
+def write_report(sections, out_path, relevant_crops=None):
+    """Join per-question visualize() sections into one standalone HTML file,
+    with an optional summary of every relevant crop at the top."""
+    summary = _summary_html(relevant_crops) if relevant_crops is not None else ""
     with open(out_path, "w") as f:
         f.write(
             f"<html><head><meta charset='utf-8'><style>{STYLE}</style></head><body>\n"
+            + summary
             + "\n".join(sections)
             + "\n</body></html>\n"
         )
@@ -171,6 +208,23 @@ class DocVQAEngine:
 
         return asyncio.run(_run())
 
+    def relevant_crops(self, boxes, relevance):
+        """Returns [{question, page, img, raw}, ...] for every crop judge
+        marked relevant for the current question -- feed these into
+        write_report(..., relevant_crops=...) for the top-of-report summary."""
+        return [
+            {
+                "question": self.question,
+                "page": page["page"],
+                "img": page["img"].crop(tuple(round(c) for c in ce["box"])),
+                "raw": ce["raw"],
+                "relevant": ce["relevant"],
+            }
+            for page in boxes
+            for ce in relevance.get(page["page"], [])
+            if ce["relevant"]
+        ]
+
     def visualize(self, boxes, relevance):
         """Returns one <div class='q'> HTML section for the current question."""
         hits_html = []
@@ -186,7 +240,7 @@ class DocVQAEngine:
             )
             hits_html.append(
                 f"<div class='hit'><h4>{page['page']}</h4>"
-                + "".join(_img_tag(_with_box(page["img"], ce["box"])) for ce in crops)
+                + f"<div class='page'>{_img_tag(_with_boxes(page['img'], [ce['box'] for ce in crops]))}</div>"
                 + f"<pre>{page['raw']}</pre><div class='crops'>{crops_html}</div></div>"
             )
         return (

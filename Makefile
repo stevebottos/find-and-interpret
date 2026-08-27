@@ -1,7 +1,7 @@
 MODEL ?= stevebottos/qwen3.5-0.8b-find-and-interpret
 DTYPE ?= bfloat16
 
-.PHONY: vllm-up vllm-down
+.PHONY: vllm-up vllm-down publish
 
 # make vllm-up MODEL=... DTYPE=bfloat16
 # mounts the host's HF cache so the container picks up your `huggingface-cli
@@ -17,3 +17,9 @@ vllm-up:
 
 vllm-down:
 	docker stop vllm-seek && docker rm vllm-seek
+
+# bump version in pyproject.toml first -- PyPI rejects re-uploading a version
+publish:
+	rm -rf dist
+	uv build
+	UV_PUBLISH_TOKEN=$(PYPI_TOKEN) uv publish

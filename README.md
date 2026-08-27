@@ -6,6 +6,8 @@ is the model's two functions, [SEEK] and [JUDGE] which I renamed to "find" and "
 Model: [`stevebottos/qwen3.5-0.8b-find-and-interpret`](https://huggingface.co/stevebottos/qwen3.5-0.8b-find-and-interpret),
 served via vLLM for best results.
 
+Write-up: [find-and-interpret](https://stevebottos.github.io/2026/08/27/find-and-interpret.html)
+
 ## Install
 
 ```
