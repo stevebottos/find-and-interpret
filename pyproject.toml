@@ -1,6 +1,6 @@
 [project]
 name = "find-and-interpret"
-version = "0.1.1"
+version = "0.1.2"
 description = "Two-step grounded document QA: locate the region that answers a question, then verify a crop actually answers it"
 readme = "README.md"
 requires-python = ">=3.12"
