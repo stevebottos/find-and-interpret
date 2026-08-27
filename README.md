@@ -2,9 +2,9 @@
 
 Document QA in two steps: find the region on a page that answers a question,
 then interpret whether a candidate crop actually answers it. Internally this
-is the model's two functions, [SEEK] (find) and [JUDGE] (interpret).
+is the model's two functions, [SEEK] and [JUDGE] which I renamed to "find" and "interpret" respectively.
 Model: [`stevebottos/qwen3.5-0.8b-find-and-interpret`](https://huggingface.co/stevebottos/qwen3.5-0.8b-find-and-interpret),
-served via vLLM.
+served via vLLM for best results.
 
 ## Setup
 
