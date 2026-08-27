@@ -1,0 +1,9 @@
+[
+  "What is the formula for computing scaled dot-product attention?",
+  "Show the diagram of the overall Transformer model architecture.",
+  "What is the formula used for positional encoding?",
+  "Show the table comparing computational complexity, sequential operations, and maximum path length for self-attention, recurrent, and convolutional layers.",
+  "What BLEU scores did the Transformer achieve on WMT 2014 English-to-German and English-to-French translation?",
+  "Show the diagram of multi-head attention.",
+  "What values of number of layers, model dimension, number of heads, and dropout were used for the base and big Transformer models?"
+]
