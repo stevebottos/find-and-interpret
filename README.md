@@ -1,7 +1,8 @@
 # find-and-interpret
 
-Seek+judge document QA: locate the region on a page that answers a question
-([SEEK]), then verify a candidate crop actually answers it ([JUDGE]).
+Document QA in two steps: find the region on a page that answers a question,
+then interpret whether a candidate crop actually answers it. Internally this
+is the model's two functions, [SEEK] (find) and [JUDGE] (interpret).
 Model: [`stevebottos/qwen3.5-0.8b-find-and-interpret`](https://huggingface.co/stevebottos/qwen3.5-0.8b-find-and-interpret),
 served via vLLM.
 
