@@ -1,10 +1,17 @@
 [project]
 name = "find-and-interpret"
 version = "0.1.0"
-description = "Add your description here"
+description = "Two-step grounded document QA: locate the region that answers a question, then verify a crop actually answers it"
 readme = "README.md"
 requires-python = ">=3.12"
+license = "MIT"
+authors = [{ name = "Steve Bottos", email = "bottos.steve@gmail.com" }]
 dependencies = [
     "aiohttp",
     "pillow",
+    "pymupdf",
 ]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
