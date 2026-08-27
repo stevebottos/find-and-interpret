@@ -6,11 +6,18 @@ is the model's two functions, [SEEK] and [JUDGE] which I renamed to "find" and "
 Model: [`stevebottos/qwen3.5-0.8b-find-and-interpret`](https://huggingface.co/stevebottos/qwen3.5-0.8b-find-and-interpret),
 served via vLLM for best results.
 
+## Install
+
+```
+pip install find-and-interpret
+```
+
+or clone this repo and `uv sync`.
+
 ## Setup
 
 ```
 make vllm-up          # starts vllm-seek on localhost:8000
-uv sync
 ```
 
 `make vllm-down` to stop it.
